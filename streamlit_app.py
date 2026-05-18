@@ -121,7 +121,7 @@ st.markdown("""
     h1 {
         color: #1A365D !important;
         font-family: 'Arial Black', sans-serif;
-        text-shadow: 2px 2px 0px #CBD5E0;
+        text-shadow: 2px 2px 0px #845ec2;
     }
     /* Customização Cartoon Estável */
     .stTextArea textarea {
