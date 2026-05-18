@@ -112,23 +112,42 @@ def gerar_pdf_stream(dados):
 # --- 2. CONFIGURAÇÃO DA INTERFACE DA APLICAÇÃO ---
 st.set_page_config(page_title="Gerador Pipoco", page_icon="⚡", layout="centered")
 
-# Injeção de CSS Seguro para Estilo Cartoon
+# Injeção de CSS Blindado contra Dark Mode
 st.markdown("""
     <style>
     body {
         background-color: #F7FAFC;
     }
+    
     h1 {
         color: #1A365D !important;
         font-family: 'Arial Black', sans-serif;
         text-shadow: 2px 2px 0px #845ec2;
     }
-    /* Customização Cartoon Estável */
+    
+    /* Força o título e textos explicativos a ficarem escuros e visíveis */
+    .stMarkdown p {
+        color: #2D3748 !important;
+    }
+    
+    /* Customização da Caixa de Texto (Fundo creme e texto PRETO obrigatório) */
     .stTextArea textarea {
+        color: #000000 !important;
+        background-color: #FFFDF5 !important;
         border: 3px solid #1A365D !important;
         border-radius: 12px !important;
-        background-color: #FFFDF5 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 15px !important;
     }
+    
+    /* Garante que o texto digitado continue preto mesmo sob foco/seleção */
+    .stTextArea textarea:focus {
+        color: #000000 !important;
+        background-color: #FFFDF5 !important;
+        border-color: #2B6CB0 !important;
+    }
+    
+    /* Botão Amarelo de Enviar */
     .stButton button {
         background-color: #FFD43B !important;
         color: #1A365D !important;
@@ -138,6 +157,8 @@ st.markdown("""
         border-radius: 12px !important;
         box-shadow: 3px 3px 0px #1A365D !important;
     }
+    
+    /* Botão Verde de Download */
     .stDownloadButton button {
         background-color: #48BB78 !important;
         color: white !important;
@@ -151,14 +172,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("⚡ Gerador de Simulados")
-st.write("Insira o código gerado no campo de texto e clique no botão para processar.")
+st.write("Insira o código gerado no campo de texto e clique no botão para obter seu PDF.")
 
-# Formulário com chaves nativas limpas
+# Formulário estável
 with st.form(key="formulario_json"):
     json_input = st.text_area(
         "Cole o conteúdo do JSON aqui:", 
         height=300, 
-        placeholder="Adicione o JSON gerado pela inteligência artificial..."
+        placeholder="Cole o código JSON completo aqui..."
     )
     botao_enviar = st.form_submit_button(label="🚀 PROCESSAR QUESTÕES", use_container_width=True)
 
