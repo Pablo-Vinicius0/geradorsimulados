@@ -14,21 +14,16 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 # --- 1. FUNÇÃO DO DESIGN DO PDF ---
 def desenhar_divisoria_central(canvas, doc):
     canvas.saveState()
-    # Coordenadas da página Letter (612 x 792 pontos)
     centro_x = 612 / 2
     topo_y = 792 - 54     
     fim_y = 54            
-    
-    # Desenha a linha vertical fina e cinza no meio da folha
     canvas.setStrokeColor(colors.HexColor('#CBD5E0'))
     canvas.setLineWidth(0.5)
     canvas.line(centro_x, topo_y, centro_x, fim_y)
     canvas.restoreState()
 
 def gerar_pdf_stream(dados):
-    # Buffer na memória para não precisar salvar arquivos no disco do servidor/tablet
     pdf_buffer = io.BytesIO()
-    
     largura_pag, altura_pag = letter
     margem = 40 
     largura_util = largura_pag - (2 * margem) 
@@ -36,7 +31,6 @@ def gerar_pdf_stream(dados):
     largura_coluna = (largura_util - espaco_entre_colunas) / 2 
     altura_util = altura_pag - (2 * margem) 
 
-    # Frames das duas colunas
     frame_esquerda = Frame(margem, margem, largura_coluna, altura_util, id='col1', leftPadding=0, rightPadding=10, topPadding=0, bottomPadding=0)
     frame_direita = Frame(margem + largura_coluna + espaco_entre_colunas, margem, largura_coluna, altura_util, id='col2', leftPadding=10, rightPadding=0, topPadding=0, bottomPadding=0)
 
@@ -52,15 +46,12 @@ def gerar_pdf_stream(dados):
     style_gabarito_titulo = ParagraphStyle('GabTit', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=colors.HexColor('#1A365D'), spaceBefore=15, spaceAfter=10, alignment=TA_CENTER)
 
     story = []
-    
-    # Matéria Principal
     story.append(Paragraph(dados['Materia'].upper(), style_materia))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1A365D'), spaceAfter=15))
     
     lista_gabaritos = []
     lista_comentarios = []
     
-    # Renderização dos Temas e Itens
     for tema in dados['Temas']:
         story.append(Paragraph(f"TEMA: {tema['NomeTema']}", style_tema))
         story.append(Spacer(1, 5))
@@ -78,10 +69,7 @@ def gerar_pdf_stream(dados):
             bloco_questao.append(Spacer(1, 15))
             story.append(KeepTogether(bloco_questao))
             
-    # Forçar quebra de página para isolar os gabaritos no final
     story.append(PageBreak())
-    
-    # Gabarito Oficial Simplificado
     story.append(Paragraph("GABARITO OFICIAL", style_gabarito_titulo))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CBD5E0'), spaceBefore=5, spaceAfter=15))
     
@@ -107,7 +95,6 @@ def gerar_pdf_stream(dados):
     story.append(tabela_gab)
     story.append(Spacer(1, 20))
     
-    # Gabarito Comentado
     story.append(Paragraph("GABARITO COMENTADO", style_gabarito_titulo))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CBD5E0'), spaceBefore=5, spaceAfter=15))
     
@@ -125,39 +112,24 @@ def gerar_pdf_stream(dados):
 # --- 2. CONFIGURAÇÃO DA INTERFACE DA APLICAÇÃO ---
 st.set_page_config(page_title="Gerador Pipoco", page_icon="⚡", layout="centered")
 
-# Injeção de CSS para Estilo Cartoon/Pop-Art
+# Injeção de CSS Seguro para Estilo Cartoon
 st.markdown("""
     <style>
-    .stApp {
+    body {
         background-color: #F7FAFC;
     }
-    
     h1 {
         color: #1A365D !important;
-        font-family: 'Comic Sans MS', 'Arial', sans-serif;
-        font-weight: 800;
+        font-family: 'Arial Black', sans-serif;
         text-shadow: 2px 2px 0px #CBD5E0;
     }
-    
-    /* Box do Formulário */
-    div[data-testid="stForm"] {
+    /* Customização Cartoon Estável */
+    .stTextArea textarea {
         border: 3px solid #1A365D !important;
-        border-radius: 20px !important;
-        box-shadow: 5px 5px 0px #1A365D !important;
-        background-color: #FFFFFF !important;
-        padding: 25px !important;
-    }
-    
-    /* Input Text Area */
-    textarea {
-        border: 2px solid #2B6CB0 !important;
         border-radius: 12px !important;
-        font-family: 'Courier New', Courier, monospace !important;
         background-color: #FFFDF5 !important;
     }
-    
-    /* Botão Amarelo de Enviar */
-    button[data-testid="stFormSubmitButton"] {
+    .stButton button {
         background-color: #FFD43B !important;
         color: #1A365D !important;
         font-weight: bold !important;
@@ -165,15 +137,8 @@ st.markdown("""
         border: 3px solid #1A365D !important;
         border-radius: 12px !important;
         box-shadow: 3px 3px 0px #1A365D !important;
-        transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
-    button[data-testid="stFormSubmitButton"]:active {
-        transform: translate(2px, 2px);
-        box-shadow: 1px 1px 0px #1A365D !important;
-    }
-    
-    /* Botão Verde de Download */
-    div.stDownloadButton > button {
+    .stDownloadButton button {
         background-color: #48BB78 !important;
         color: white !important;
         font-weight: bold !important;
@@ -181,7 +146,6 @@ st.markdown("""
         border: 3px solid #1A365D !important;
         border-radius: 15px !important;
         box-shadow: 4px 4px 0px #1A365D !important;
-        padding: 15px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -189,36 +153,29 @@ st.markdown("""
 st.title("⚡ Gerador de Simulados")
 st.write("Insira o código gerado no campo de texto e clique no botão para processar.")
 
-# Formulário para bloquear reloads automáticos indesejados
+# Formulário com chaves nativas limpas
 with st.form(key="formulario_json"):
     json_input = st.text_area(
         "Cole o conteúdo do JSON aqui:", 
-        height=320, 
+        height=300, 
         placeholder="Adicione o JSON gerado pela inteligência artificial..."
     )
-    
     botao_enviar = st.form_submit_button(label="🚀 PROCESSAR QUESTÕES", use_container_width=True)
 
-# Processamento pós-clique
 if botao_enviar:
-    if json_input.strip() == "":
+    if not json_input.strip():
         st.warning("⚠️ Ei, a caixa está vazia! Cole o conteúdo antes de enviar.")
     else:
         try:
             dados_validados = json.loads(json_input)
-            
-            # Armazena na sessão para liberar o botão de download
             st.session_state['dados_pdf'] = dados_validados
             st.toast("✨ Tudo certo! Seu caderno foi estruturado com sucesso.", icon="🎉")
-            
         except json.JSONDecodeError as e:
-            st.error(f"❌ Opa, o conteúdo não parece um JSON válido! Certifique-se de copiar desde a chave '{{' até a '}}'. Erro: {e}")
+            st.error(f"❌ Conteúdo inválido. Certifique-se de copiar o JSON completo. Erro: {e}")
 
-# Exibe o botão de download caso os dados já tenham sido validados
 if 'dados_pdf' in st.session_state:
     st.markdown("<br>", unsafe_allow_html=True)
     pdf_data = gerar_pdf_stream(st.session_state['dados_pdf'])
-    
     st.download_button(
         label="📥 BAIXAR CADERNO FORMATADO (.PDF)",
         data=pdf_data,
