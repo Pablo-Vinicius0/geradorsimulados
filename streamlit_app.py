@@ -8,7 +8,7 @@ from reportlab.platypus import (
     Spacer, KeepTogether, Table, TableStyle, HRFlowable, PageBreak
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
 # --- 1. DESIGN DO BACKGROUND DO PDF (DUAS COLUNAS) ---
 def desenhar_divisoria_central(canvas, doc):
@@ -16,7 +16,7 @@ def desenhar_divisoria_central(canvas, doc):
     centro_x = 612 / 2
     topo_y = 792 - 54     
     fim_y = 54            
-    canvas.setStrokeColor(colors.HexColor('#E2E8F0'))  # Divisória cinza sutil
+    canvas.setStrokeColor(colors.HexColor('#E2E8F0'))  
     canvas.setLineWidth(0.5)
     canvas.line(centro_x, topo_y, centro_x, fim_y)
     canvas.restoreState()
@@ -30,7 +30,6 @@ def gerar_pdf_stream(dados, tipo_questao):
     largura_coluna = (largura_util - espaco_entre_colunas) / 2 
     altura_util = altura_pag - (2 * margem) 
 
-    # Frames das duas colunas
     frame_esquerda = Frame(margem, margem, largura_coluna, altura_util, id='col1', leftPadding=0, rightPadding=10, topPadding=0, bottomPadding=0)
     frame_direita = Frame(margem + largura_coluna + espaco_entre_colunas, margem, largura_coluna, altura_util, id='col2', leftPadding=10, rightPadding=0, topPadding=0, bottomPadding=0)
 
@@ -38,7 +37,6 @@ def gerar_pdf_stream(dados, tipo_questao):
     template = PageTemplate(id='DuasColunas', frames=[frame_esquerda, frame_direita], onPage=desenhar_divisoria_central)
     doc.addPageTemplates([template])
     
-    # Definição fina de Estilos de Texto
     styles = getSampleStyleSheet()
     
     style_materia = ParagraphStyle('Mat', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=colors.HexColor('#0F172A'), alignment=TA_CENTER, spaceAfter=2)
@@ -55,7 +53,6 @@ def gerar_pdf_stream(dados, tipo_questao):
 
     story = []
     
-    # --- CABEÇALHO PRINCIPAL DO CADERNO ---
     story.append(Paragraph(dados['Materia'].upper(), style_materia))
     if 'Submateria' in dados:
         story.append(Paragraph(dados['Submateria'], style_submateria))
@@ -67,18 +64,13 @@ def gerar_pdf_stream(dados, tipo_questao):
     lista_gabaritos = []
     lista_comentarios = []
     
-    # Captura a lista de questões independente de estar na raiz ou dentro do nó "Estrutura"
     questoes = dados.get('Estrutura', {}).get('Questoes', dados.get('Questoes', []))
     
-    # --- PROCESSAMENTO E RENDERIZAÇÃO DAS QUESTÕES ---
     for q in questoes:
         num_q = q['Id']
         gabarito = q['Gabarito'].upper()
-        
-        # Guardando referências para a seção de correção
         lista_gabaritos.append((num_q, gabarito))
         
-        # Mapeamento dinâmico para suportar "AnaliseDetalhada" ou chaves soltas na raiz do objeto
         analise = q.get('AnaliseDetalhada', q)
         lista_comentarios.append({
             'id': num_q,
@@ -91,7 +83,6 @@ def gerar_pdf_stream(dados, tipo_questao):
         bloco_questao = []
         bloco_questao.append(Paragraph(f"<b>{num_q}.</b> {q['Enunciado']}", style_enunciado))
         
-        # Renderização condicional baseada na seleção da interface do app
         if tipo_questao == "Certo / Errado":
             opcao_texto = f"<b>( &nbsp;C&nbsp; ) &nbsp; ( &nbsp;E&nbsp; )</b>"
             bloco_questao.append(Paragraph(opcao_texto, style_seletor))
@@ -106,7 +97,6 @@ def gerar_pdf_stream(dados, tipo_questao):
         bloco_questao.append(Spacer(1, 15))
         story.append(KeepTogether(bloco_questao))
         
-    # --- RENDERIZAÇÃO DE MÉTRICAS DA BANCA (SE EXISTIR NO JSON) ---
     metricas = dados.get('Estrutura', {}).get('MetricasBanca', dados.get('MetricasBanca', {}))
     if metricas:
         bloco_metricas = [PageBreak() if len(questoes) > 4 else Spacer(1, 10)]
@@ -128,7 +118,6 @@ def gerar_pdf_stream(dados, tipo_questao):
         
         story.append(KeepTogether(bloco_metricas))
 
-    # --- RENDERIZAÇÃO DO RESUMO DE VÉSPERA (SE EXISTIR NO JSON) ---
     resumo = dados.get('Estrutura', {}).get('ResumoVespera', dados.get('ResumoVespera', {}))
     if resumo:
         bloco_resumo = []
@@ -163,17 +152,15 @@ def gerar_pdf_stream(dados, tipo_questao):
                 
         story.append(KeepTogether(bloco_resumo))
 
-    # --- SEÇÃO FINAL: GABARITOS E COMENTÁRIOS (ISOLADOS EM NOVA PÁGINA) ---
     story.append(PageBreak())
     
     story.append(Paragraph("GABARITO OFICIAL", style_gabarito_titulo))
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=5, spaceAfter=15))
     
-    # Montagem da Tabela de Respostas
     dados_tabela = []
     linha_atual = []
     for num, gab in lista_gabaritos:
-        linha_atual.append(Paragraph(f"<b>{num}:</b> &nbsp;{gab}", style_enunciado))
+        linha_atual.append(Paragraph(f"<b>{num}:</b> &nbsp;{get_spaced_gabarito(gab)}", style_enunciado))
         if len(linha_atual) == 4:
             dados_tabela.append(linha_atual)
             linha_atual = []
@@ -197,7 +184,7 @@ def gerar_pdf_stream(dados, tipo_questao):
     
     for item in lista_comentarios:
         bloco_comentario = []
-        bloco_comentario.append(Paragraph(f"<b>Questão {item['id']} — Gabarito Oficial: {item['gabarito']}</b>", style_assertiva))
+        bloco_comentario.append(Paragraph(f"<b>Questão {item['id']} — Gabarito Oficial: {item['gabarito']}</b>", style_seletor))
         bloco_comentario.append(Paragraph(f"<b>Análise:</b> {item['comentario']}", style_coment_texto))
         
         if item['pegadinha']:
@@ -212,31 +199,27 @@ def gerar_pdf_stream(dados, tipo_questao):
     pdf_buffer.seek(0)
     return pdf_buffer
 
-# --- 2. CONFIGURAÇÃO DA INTERFACE STRALIMIT (MODERNA E MINIMALISTA) ---
+def get_spaced_gabarito(g):
+    return g
+
+# --- 2. CONFIGURAÇÃO DA INTERFACE STREAMLIT (ALTO CONTRASTE / MINIMALISTA) ---
 st.set_page_config(page_title="Compilador Minimalista", page_icon="📄", layout="centered")
 
 st.markdown("""
     <style>
-    /* 1. FORÇA O FUNDO DA PÁGINA */
     .stApp {
         background-color: #F8FAFC !important;
     }
-    
-    /* 2. FORÇA OS TÍTULOS E TEXTOS DA JANELA A FICAREM ESCUROS DE VERDADE */
     h2 {
         color: #0F172A !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-weight: 700 !important;
     }
-    
-    /* Alvo em todos os textos de parágrafos, labels e descrições do Streamlit */
     .stMarkdown p, label, span, .stWidgetLabel p {
         color: #1E293B !important;
         font-weight: 600 !important;
         opacity: 1 !important;
     }
-    
-    /* 3. CARD DO FORMULÁRIO */
     div[data-testid="stForm"] {
         background-color: #FFFFFF !important;
         border: 2px solid #E2E8F0 !important;
@@ -244,8 +227,6 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
         padding: 24px !important;
     }
-    
-    /* 4. BLINDAGEM COMPLETA DOS INPUTS (TEXTO PRETO E FUNDO BRANCO) */
     .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input {
         color: #000000 !important;
         background-color: #FFFFFF !important;
@@ -253,26 +234,19 @@ st.markdown("""
         border-radius: 6px !important;
         font-size: 15px !important;
     }
-    
-    /* Força o texto dentro do input a continuar preto em qualquer circunstância */
     input, textarea, select {
         color: #000000 !important;
     }
-    
-    /* Estilização do texto temporário (Placeholder) para ficar bem visível */
     ::-webkit-input-placeholder { color: #64748B !important; opacity: 1 !important; }
     :-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
     ::-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
     :-ms-input-placeholder { color: #64748B !important; opacity: 1 !important; }
     
-    /* Foco ativo nos campos */
     .stTextArea textarea:focus, .stTextInput input:focus {
         border-color: #0F172A !important;
         box-shadow: 0 0 0 1px #0F172A !important;
         color: #000000 !important;
     }
-    
-    /* 5. BOTÕES MINIMALISTAS */
     .stButton button {
         background-color: #0F172A !important;
         color: #FFFFFF !important;
@@ -286,8 +260,6 @@ st.markdown("""
         border-color: #1E293B !important;
         color: #FFFFFF !important;
     }
-    
-    /* Botão de Download */
     .stDownloadButton button {
         background-color: #059669 !important;
         color: #FFFFFF !important;
@@ -334,7 +306,6 @@ if botao_enviar:
             st.session_state['dados_pdf'] = dados_validados
             st.session_state['tipo_pdf'] = tipo_selecionado
             
-            # Cálculo do nome do arquivo
             if nome_arquivo_input.strip():
                 nome_limpo = nome_arquivo_input.strip().replace(".pdf", "").replace(".PDF", "")
                 nome_final = f"{nome_limpo}.pdf"
@@ -353,7 +324,7 @@ if 'dados_pdf' in st.session_state:
     pdf_data = gerar_pdf_stream(st.session_state['dados_pdf'], st.session_state['tipo_pdf'])
     
     st.download_button(
-        label=f"📥 Baixar Caderno ({st.session_state['nome_arquivo_pdf']})",
+        label="📥 Baixar Caderno Formatado",
         data=pdf_data,
         file_name=st.session_state['nome_arquivo_pdf'],
         mime="application/pdf",
