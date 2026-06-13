@@ -1,5 +1,4 @@
 import json
-import os
 import io
 import streamlit as st
 from reportlab.lib.pagesizes import letter
@@ -11,13 +10,13 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
-# --- 1. FUNÇÃO DO DESIGN DO PDF ---
+# --- 1. FUNÇÃO DO DESIGN DO PDF (DUAS COLUNAS COM DIVISÓRIA) ---
 def desenhar_divisoria_central(canvas, doc):
     canvas.saveState()
     centro_x = 612 / 2
     topo_y = 792 - 54     
     fim_y = 54            
-    canvas.setStrokeColor(colors.HexColor('#CBD5E0'))
+    canvas.setStrokeColor(colors.HexColor('#E2E8F0'))  # Cinza bem sutil
     canvas.setLineWidth(0.5)
     canvas.line(centro_x, topo_y, centro_x, fim_y)
     canvas.restoreState()
@@ -39,16 +38,16 @@ def gerar_pdf_stream(dados, tipo_questao):
     doc.addPageTemplates([template])
     
     styles = getSampleStyleSheet()
-    style_materia = ParagraphStyle('Mat', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=colors.HexColor('#1A365D'), alignment=TA_CENTER, spaceAfter=10)
-    style_tema = ParagraphStyle('Tem', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#2B6CB0'), spaceBefore=10, spaceAfter=8)
-    style_enunciado = ParagraphStyle('Enun', parent=styles['Normal'], fontName='Helvetica', fontSize=10, leading=14, textColor=colors.HexColor('#2D3748'), alignment=TA_JUSTIFY, spaceAfter=4)
+    style_materia = ParagraphStyle('Mat', parent=styles['Heading1'], fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=colors.HexColor('#0F172A'), alignment=TA_CENTER, spaceAfter=10)
+    style_tema = ParagraphStyle('Tem', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#334155'), spaceBefore=10, spaceAfter=8)
+    style_enunciado = ParagraphStyle('Enun', parent=styles['Normal'], fontName='Helvetica', fontSize=10, leading=14, textColor=colors.HexColor('#334155'), alignment=TA_JUSTIFY, spaceAfter=4)
     style_assertiva = ParagraphStyle('Ass', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, leading=14, textColor=colors.black, alignment=TA_JUSTIFY)
     style_opcao_multipla = ParagraphStyle('OpMed', parent=styles['Normal'], fontName='Helvetica', fontSize=9.5, leading=13, textColor=colors.black, alignment=TA_JUSTIFY, spaceAfter=2)
-    style_gabarito_titulo = ParagraphStyle('GabTit', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=colors.HexColor('#1A365D'), spaceBefore=15, spaceAfter=10, alignment=TA_CENTER)
+    style_gabarito_titulo = ParagraphStyle('GabTit', parent=styles['Heading2'], fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=colors.HexColor('#0F172A'), spaceBefore=15, spaceAfter=10, alignment=TA_CENTER)
 
     story = []
     story.append(Paragraph(dados['Materia'].upper(), style_materia))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1A365D'), spaceAfter=15))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#0F172A'), spaceAfter=15))
     
     lista_gabaritos = []
     lista_comentarios = []
@@ -66,17 +65,14 @@ def gerar_pdf_stream(dados, tipo_questao):
             bloco_questao = []
             bloco_questao.append(Paragraph(f"<b>{num_q}.</b> {q['Enunciado']}", style_enunciado))
             
-            # Condicional de renderização baseado no tipo selecionado na UI
             if tipo_questao == "Certo / Errado":
                 opcao_texto = f"<b>( &nbsp;C&nbsp; ) &nbsp; ( &nbsp;E&nbsp; )</b>"
                 bloco_questao.append(Paragraph(opcao_texto, style_assertiva))
             else:
-                # Múltipla Escolha: Varre e renderiza as alternativas do JSON
                 if "Opcoes" in q:
                     for opt in q["Opcoes"]:
                         bloco_questao.append(Paragraph(opt, style_opcao_multipla))
                 else:
-                    # Fallback visual caso falte o nó no JSON
                     for letra in ['A', 'B', 'C', 'D', 'E']:
                         bloco_questao.append(Paragraph(f"<b>{letra})</b> ___________________________", style_opcao_multipla))
             
@@ -85,7 +81,7 @@ def gerar_pdf_stream(dados, tipo_questao):
             
     story.append(PageBreak())
     story.append(Paragraph("GABARITO OFICIAL", style_gabarito_titulo))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CBD5E0'), spaceBefore=5, spaceAfter=15))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=5, spaceAfter=15))
     
     dados_tabela = []
     linha_atual = []
@@ -110,7 +106,7 @@ def gerar_pdf_stream(dados, tipo_questao):
     story.append(Spacer(1, 20))
     
     story.append(Paragraph("GABARITO COMENTADO", style_gabarito_titulo))
-    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CBD5E0'), spaceBefore=5, spaceAfter=15))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceBefore=5, spaceAfter=15))
     
     for num, gab, comentario in lista_comentarios:
         bloco_comentario = []
@@ -123,144 +119,154 @@ def gerar_pdf_stream(dados, tipo_questao):
     pdf_buffer.seek(0)
     return pdf_buffer
 
-# --- 2. CONFIGURAÇÃO DA INTERFACE DA APLICAÇÃO (TEMA WINDOWS 7 AERO) ---
-st.set_page_config(page_title="Windows 7 Simulators", page_icon="💻", layout="centered")
+# --- 2. CONFIGURAÇÃO DA INTERFACE (ESTILO COMPATÍVEL ESCOPO MINIMALISTA) ---
+st.set_page_config(page_title="Compilador Minimalista", page_icon="📄", layout="centered")
 
+# CSS para o visual Moderno, Limpo e Minimalista (Sem bordas gritantes ou gradientes excessivos)
 st.markdown("""
     <style>
-    /* Fundo clássico texturizado do Windows 7 */
+    /* Fundo suave e neutro */
     .stApp {
-        background: linear-gradient(135deg, #3a7bd5, #3a6073) !important;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        background-color: #FAFAFA !important;
     }
     
-    /* Janela Principal Estilo Windows Aero Glass */
+    /* Título elegante */
+    h2 {
+        color: #0F172A !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+    }
+    
+    /* Container do formulário clean, como um card moderno */
     div[data-testid="stForm"] {
-        background: rgba(235, 245, 255, 0.85) !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        border-radius: 8px !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.6) !important;
-        padding: 0px !important; /* Controlado pelo header interno */
-        overflow: hidden;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E4E4E7 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+        padding: 24px !important;
     }
     
-    /* Barra de Título Azul do Windows 7 */
-    .win7-header {
-        background: linear-gradient(to bottom, #7abcff 0%, #60abf8 44%, #4096ee 100%);
-        padding: 10px 15px;
-        color: #ffffff;
-        font-weight: bold;
-        font-size: 16px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        border-bottom: 1px solid #2d70b5;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .win7-body {
-        padding: 20px;
-    }
-    
-    /* Textos da UI */
+    /* Textos secundários */
     .stMarkdown p, label {
-        color: #1e395b !important;
-        font-weight: 500 !important;
+        color: #4B5563 !important;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    /* Customização dos Inputs (Caixa de Texto e Selectbox) */
-    .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
-        color: #000000 !important;
-        background-color: #ffffff !important;
-        border: 1px solid #7f9db9 !important;
-        border-radius: 3px !important;
-        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.1) !important;
-    }
-    
-    /* Botões Clássicos com Efeito Gel/Gradiente do Windows 7 */
-    .stButton button, .stDownloadButton button {
-        background: linear-gradient(to bottom, #f2f2f2 0%, #ebebeb 50%, #dddddd 51%, #cfcfcf 100%) !important;
-        color: #333333 !important;
-        font-family: 'Segoe UI', sans-serif !important;
+    /* Inputs arredondados e discretos */
+    .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input {
+        color: #0F172A !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E4E4E7 !important;
+        border-radius: 6px !important;
         font-size: 14px !important;
-        border: 1px solid #707070 !important;
-        border-radius: 3px !important;
-        box-shadow: inset 0 1px 0 #ffffff, 1px 1px 2px rgba(0,0,0,0.1) !important;
-        text-shadow: 0 1px 0 #ffffff;
-        transition: all 0.1s ease;
     }
     
-    /* Efeito de Hover nos botões (Brilho azul suave) */
-    .stButton button:hover, .stDownloadButton button:hover {
-        border-color: #3c7fb1 !important;
-        background: linear-gradient(to bottom, #eaf6fd 0%, #d9f0fc 50%, #bee6fd 51%, #a7d9f5 100%) !important;
-        box-shadow: 0 0 5px #a7d9f5 !important;
+    /* Foco nos Inputs */
+    .stTextArea textarea:focus, .stTextInput input:focus {
+        border-color: #0F172A !important;
+        box-shadow: 0 0 0 1px #0F172A !important;
     }
     
-    /* Botão de Download em Destaque */
+    /* Botão de Ação Primária Minimalista (Preto / Slate Escuro) */
+    .stButton button {
+        background-color: #0F172A !important;
+        color: #FFFFFF !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        border: 1px solid #0F172A !important;
+        border-radius: 6px !important;
+        transition: background-color 0.15s ease;
+        padding: 8px 16px !important;
+    }
+    
+    .stButton button:hover {
+        background-color: #1E293B !important;
+        color: #FFFFFF !important;
+        border-color: #1E293B !important;
+    }
+    
+    /* Botão de Download com tom neutro de sucesso */
     .stDownloadButton button {
-        background: linear-gradient(to bottom, #eaf6fd 0%, #bee6fd 50%, #a7d9f5 51%, #79bde8 100%) !important;
-        border-color: #3c7fb1 !important;
-        margin-top: 10px;
+        background-color: #059669 !important;
+        color: #FFFFFF !important;
+        font-weight: 500 !important;
+        font-size: 15px !important;
+        border: 1px solid #059669 !important;
+        border-radius: 6px !important;
+        margin-top: 15px;
+    }
+    
+    .stDownloadButton button:hover {
+        background-color: #047857 !important;
+        color: #FFFFFF !important;
+        border-color: #047857 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Título fora da janela simulada
-st.write("<h2 style='color:white; text-shadow: 1px 1px 4px rgba(0,0,0,0.6); font-family:Sans-Serif;'>💻 Gerador de Simulados 2006</h2>", unsafe_allow_html=True)
+st.write("<h2>Compilador de Simulados</h2>", unsafe_allow_html=True)
+st.write("Converta estruturas de dados em cadernos de prova diagramados de forma simples.")
 
-# Início da Janela estruturada do Windows 7
-with st.form(key="formulario_windows7"):
-    # Renderiza a barra superior nativa do sistema operacional antigo
-    st.markdown("""
-        <div class="win7-header">
-            <span>Conversor de Simulados (.JSON &rarr; .PDF)</span>
-            <span style="font-size: 12px; letter-spacing: 2px;">🗕 🗖 🗙</span>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Div para aplicar o espaçamento correto interno
-    st.markdown('<div class="win7-body">', unsafe_allow_html=True)
+# Formulário único e limpo
+with st.form(key="formulario_minimalista"):
     
     # 1. Menu de seleção do Tipo de Questão
     tipo_selecionado = st.selectbox(
-        "Selecione o modelo do caderno de provas:",
-        ["Certo / Errado", "Múltipla Escolha (A até E)"]
+        "Formato das questões:",
+        ["Múltipla Escolha (A até E)", "Certo / Errado"]
     )
     
-    # 2. Área de Texto para colar o JSON
+    # 2. Campo opcional para nomear o arquivo final
+    nome_arquivo_input = st.text_input(
+        "Nome do arquivo PDF (Opcional):",
+        placeholder="Ex: Simulado_Constitucional_Fcc (Não precisa digitar .pdf)"
+    )
+    
+    # 3. Área de Texto para o JSON
     json_input = st.text_area(
-        "Cole o código gerado abaixo:", 
-        height=250, 
-        placeholder="{\n  \"Materia\": \"...\"\n}"
+        "Código estruturado (JSON):", 
+        height=280, 
+        placeholder="{\n  \"Materia\": \"Nome da Disciplina\",\n  \"Temas\": [...]\n}"
     )
     
-    # 3. Botão de Envio do Formulário Windows
-    botao_enviar = st.form_submit_button(label="Aplicar e Compilar", use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Botão de envio
+    botao_enviar = st.form_submit_button(label="Processar e Estruturar", use_container_width=True)
 
-# Processamento lógico
+# Lógica de validação pós-clique
 if botao_enviar:
     if not json_input.strip():
-        st.warning("Atenção: A área de transferência de dados está vazia.")
+        st.warning("Por favor, insira o conteúdo antes de submeter.")
     else:
         try:
             dados_validados = json.loads(json_input)
-            # Guarda também o tipo escolhido na sessão
             st.session_state['dados_pdf'] = dados_validados
             st.session_state['tipo_pdf'] = tipo_selecionado
-            st.toast("Operação concluída com sucesso no sistema.", icon="ℹ️")
+            
+            # Define o nome do arquivo final
+            if nome_arquivo_input.strip():
+                # Remove o .pdf caso o usuário tenha digitado manualmente
+                nome_limpo = nome_arquivo_input.strip().replace(".pdf", "").replace(".PDF", "")
+                nome_final = f"{nome_limpo}.pdf"
+            else:
+                # Fallback: Usa o nome da matéria presente no JSON (substituindo espaços por underlines)
+                nome_seguro = dados_validados.get('Materia', 'Simulado').replace(" ", "_")
+                nome_final = f"{nome_seguro}.pdf"
+                
+            st.session_state['nome_arquivo_pdf'] = nome_final
+            st.toast("Dados validados com sucesso.", icon="✓")
+            
         except json.JSONDecodeError as e:
-            st.error(f"Erro de Sintaxe no Arquivo. Certifique-se de fechar todas as chaves. Log: {e}")
+            st.error(f"Erro na leitura dos dados. Verifique a formatação do código. Detalhes: {e}")
 
-# Janela de Download posterior
+# Renderização do botão de download fora do formulário para evitar reloads
 if 'dados_pdf' in st.session_state:
     pdf_data = gerar_pdf_stream(st.session_state['dados_pdf'], st.session_state['tipo_pdf'])
+    
     st.download_button(
-        label="💾 Gravar Arquivo PDF no Disco",
+        label=f"📥 Baixar Arquivo ({st.session_state['nome_arquivo_pdf']})",
         data=pdf_data,
-        file_name="Simulado_Gerado.pdf",
+        file_name=st.session_state['nome_arquivo_pdf'],
         mime="application/pdf",
         use_container_width=True
     )
