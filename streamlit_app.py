@@ -217,54 +217,88 @@ st.set_page_config(page_title="Compilador Minimalista", page_icon="📄", layout
 
 st.markdown("""
     <style>
+    /* 1. FORÇA O FUNDO DA PÁGINA */
     .stApp {
-        background-color: #FAFAFA !important;
+        background-color: #F8FAFC !important;
     }
+    
+    /* 2. FORÇA OS TÍTULOS E TEXTOS DA JANELA A FICAREM ESCUROS DE VERDADE */
     h2 {
         color: #0F172A !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-weight: 600;
-        letter-spacing: -0.5px;
+        font-weight: 700 !important;
     }
+    
+    /* Alvo em todos os textos de parágrafos, labels e descrições do Streamlit */
+    .stMarkdown p, label, span, .stWidgetLabel p {
+        color: #1E293B !important;
+        font-weight: 600 !important;
+        opacity: 1 !important;
+    }
+    
+    /* 3. CARD DO FORMULÁRIO */
     div[data-testid="stForm"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #E4E4E7 !important;
+        border: 2px solid #E2E8F0 !important;
         border-radius: 12px !important;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
         padding: 24px !important;
     }
+    
+    /* 4. BLINDAGEM COMPLETA DOS INPUTS (TEXTO PRETO E FUNDO BRANCO) */
     .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input {
-        color: #0F172A !important;
+        color: #000000 !important;
         background-color: #FFFFFF !important;
-        border: 1px solid #E4E4E7 !important;
+        border: 2px solid #CBD5E1 !important;
         border-radius: 6px !important;
+        font-size: 15px !important;
     }
+    
+    /* Força o texto dentro do input a continuar preto em qualquer circunstância */
+    input, textarea, select {
+        color: #000000 !important;
+    }
+    
+    /* Estilização do texto temporário (Placeholder) para ficar bem visível */
+    ::-webkit-input-placeholder { color: #64748B !important; opacity: 1 !important; }
+    :-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
+    ::-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
+    :-ms-input-placeholder { color: #64748B !important; opacity: 1 !important; }
+    
+    /* Foco ativo nos campos */
     .stTextArea textarea:focus, .stTextInput input:focus {
         border-color: #0F172A !important;
         box-shadow: 0 0 0 1px #0F172A !important;
+        color: #000000 !important;
     }
+    
+    /* 5. BOTÕES MINIMALISTAS */
     .stButton button {
         background-color: #0F172A !important;
         color: #FFFFFF !important;
-        font-weight: 500 !important;
-        border: 1px solid #0F172A !important;
+        font-weight: 600 !important;
+        border: 2px solid #0F172A !important;
         border-radius: 6px !important;
-        transition: background-color 0.15s ease;
+        padding: 10px 20px !important;
     }
     .stButton button:hover {
         background-color: #1E293B !important;
+        border-color: #1E293B !important;
         color: #FFFFFF !important;
     }
+    
+    /* Botão de Download */
     .stDownloadButton button {
         background-color: #059669 !important;
         color: #FFFFFF !important;
-        font-weight: 500 !important;
-        border: 1px solid #059669 !important;
+        font-weight: 600 !important;
+        border: 2px solid #059669 !important;
         border-radius: 6px !important;
-        margin-top: 15px;
     }
     .stDownloadButton button:hover {
         background-color: #047857 !important;
+        border-color: #047857 !important;
+        color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
