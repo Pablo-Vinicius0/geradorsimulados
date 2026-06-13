@@ -343,7 +343,7 @@ if botao_enviar:
                 nome_final = f"{nome_seguro}.pdf"
                 
             st.session_state['nome_arquivo_pdf'] = nome_final
-            st.toast("Dados validados com sucesso.", icon="✓")
+            st.toast("Dados validados com sucesso.", icon="✅")
             
         except json.JSONDecodeError as e:
             st.error(f"Erro na leitura dos dados. Verifique o JSON. Detalhes: {e}")
