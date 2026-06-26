@@ -63,43 +63,54 @@ def gerar_pdf_stream(dados, tipo_questao):
     
     lista_gabaritos = []
     lista_comentarios = []
+    total_questoes = 0
     
-    questoes = dados.get('Estrutura', {}).get('Questoes', dados.get('Questoes', []))
-    
-    for q in questoes:
-        num_q = q['Id']
-        gabarito = q['Gabarito'].upper()
-        lista_gabaritos.append((num_q, gabarito))
+    # Navegação corrigida: Coleta as questões dentro do nó de "Temas" de forma linear
+    temas = dados.get('Temas', [])
+    if not temas and 'Estrutura' in dados:
+        temas = dados.get('Estrutura', {}).get('Temas', [])
         
-        analise = q.get('AnaliseDetalhada', q)
-        lista_comentarios.append({
-            'id': num_q,
-            'gabarito': gabarito,
-            'comentario': analise.get('Comentario', ''),
-            'pegadinha': analise.get('Pegadinha', ''),
-            'dica': analise.get('DicaMemorizacao', '')
-        })
+    for tema in temas:
+        story.append(Paragraph(f"TEMA: {tema['NomeTema']}", style_tema))
+        story.append(Spacer(1, 5))
         
-        bloco_questao = []
-        bloco_questao.append(Paragraph(f"<b>{num_q}.</b> {q['Enunciado']}", style_enunciado))
-        
-        if tipo_questao == "Certo / Errado":
-            opcao_texto = f"<b>( &nbsp;C&nbsp; ) &nbsp; ( &nbsp;E&nbsp; )</b>"
-            bloco_questao.append(Paragraph(opcao_texto, style_seletor))
-        else:
-            if "Opcoes" in q:
-                for opt in q["Opcoes"]:
-                    bloco_questao.append(Paragraph(opt, style_opcao_multipla))
+        for q in tema.get('Questoes', []):
+            total_questoes += 1
+            num_q = q['Id']
+            gabarito = q['Gabarito'].upper()
+            lista_gabaritos.append((num_q, gabarito))
+            
+            analise = q.get('AnaliseDetalhada', q)
+            lista_comentarios.append({
+                'id': num_q,
+                'gabarito': gabarito,
+                'comentario': analise.get('Comentario', ''),
+                'pegadinha': analise.get('Pegadinha', ''),
+                'dica': analise.get('DicaMemorizacao', '')
+            })
+            
+            bloco_questao = []
+            bloco_questao.append(Paragraph(f"<b>{num_q}.</b> {q['Enunciado']}", style_enunciado))
+            
+            if tipo_questao == "Certo / Errado":
+                opcao_texto = f"<b>( &nbsp;C&nbsp; ) &nbsp; ( &nbsp;E&nbsp; )</b>"
+                bloco_questao.append(Paragraph(opcao_texto, style_seletor))
             else:
-                for letra in ['A', 'B', 'C', 'D', 'E']:
-                    bloco_questao.append(Paragraph(f"<b>{letra})</b> ___________________________", style_opcao_multipla))
-        
-        bloco_questao.append(Spacer(1, 15))
-        story.append(KeepTogether(bloco_questao))
-        
-    metricas = dados.get('Estrutura', {}).get('MetricasBanca', dados.get('MetricasBanca', {}))
+                if "Opcoes" in q:
+                    for opt in q["Opcoes"]:
+                        bloco_questao.append(Paragraph(opt, style_opcao_multipla))
+                else:
+                    for letra in ['A', 'B', 'C', 'D', 'E']:
+                        bloco_questao.append(Paragraph(f"<b>{letra})</b> ___________________________", style_opcao_multipla))
+            
+            bloco_questao.append(Spacer(1, 15))
+            story.append(KeepTogether(bloco_questao))
+            
+    # Captura métricas e resumos caso estejam envelopados em estruturas complexas
+    estrutura_base = dados.get('Estrutura', dados)
+    metricas = estrutura_base.get('MetricasBanca', {})
     if metricas:
-        bloco_metricas = [PageBreak() if len(questoes) > 4 else Spacer(1, 10)]
+        bloco_metricas = [PageBreak() if total_questoes > 4 else Spacer(1, 10)]
         bloco_metricas.append(Paragraph("MÉTRICAS DA BANCA", style_gabarito_titulo))
         bloco_metricas.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0'), spaceAfter=10))
         
@@ -118,7 +129,7 @@ def gerar_pdf_stream(dados, tipo_questao):
         
         story.append(KeepTogether(bloco_metricas))
 
-    resumo = dados.get('Estrutura', {}).get('ResumoVespera', dados.get('ResumoVespera', {}))
+    resumo = estrutura_base.get('ResumoVespera', {})
     if resumo:
         bloco_resumo = []
         if not metricas:
@@ -160,7 +171,7 @@ def gerar_pdf_stream(dados, tipo_questao):
     dados_tabela = []
     linha_atual = []
     for num, gab in lista_gabaritos:
-        linha_atual.append(Paragraph(f"<b>{num}:</b> &nbsp;{get_spaced_gabarito(gab)}", style_enunciado))
+        linha_atual.append(Paragraph(f"<b>{num}:</b> &nbsp;{gab}", style_enunciado))
         if len(linha_atual) == 4:
             dados_tabela.append(linha_atual)
             linha_atual = []
@@ -199,102 +210,30 @@ def gerar_pdf_stream(dados, tipo_questao):
     pdf_buffer.seek(0)
     return pdf_buffer
 
-def get_spaced_gabarito(g):
-    return g
-
-# --- 2. CONFIGURAÇÃO DA INTERFACE STREAMLIT (ALTO CONTRASTE / MINIMALISTA) ---
+# --- 2. CONFIGURAÇÃO DA INTERFACE STREAMLIT ---
 st.set_page_config(page_title="Compilador Minimalista", page_icon="📄", layout="centered")
 
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #F8FAFC !important;
-    }
-    h2 {
-        color: #0F172A !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-weight: 700 !important;
-    }
-    .stMarkdown p, label, span, .stWidgetLabel p {
-        color: #1E293B !important;
-        font-weight: 600 !important;
-        opacity: 1 !important;
-    }
-    div[data-testid="stForm"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #E2E8F0 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
-        padding: 24px !important;
-    }
-    .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input {
-        color: #000000 !important;
-        background-color: #FFFFFF !important;
-        border: 2px solid #CBD5E1 !important;
-        border-radius: 6px !important;
-        font-size: 15px !important;
-    }
-    input, textarea, select {
-        color: #000000 !important;
-    }
-    ::-webkit-input-placeholder { color: #64748B !important; opacity: 1 !important; }
-    :-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
-    ::-moz-placeholder { color: #64748B !important; opacity: 1 !important; }
-    :-ms-input-placeholder { color: #64748B !important; opacity: 1 !important; }
-    
-    .stTextArea textarea:focus, .stTextInput input:focus {
-        border-color: #0F172A !important;
-        box-shadow: 0 0 0 1px #0F172A !important;
-        color: #000000 !important;
-    }
-    .stButton button {
-        background-color: #0F172A !important;
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
-        border: 2px solid #0F172A !important;
-        border-radius: 6px !important;
-        padding: 10px 20px !important;
-    }
-    .stButton button:hover {
-        background-color: #1E293B !important;
-        border-color: #1E293B !important;
-        color: #FFFFFF !important;
-    }
-    .stDownloadButton button {
-        background-color: #059669 !important;
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
-        border: 2px solid #059669 !important;
-        border-radius: 6px !important;
-    }
-    .stDownloadButton button:hover {
-        background-color: #047857 !important;
-        border-color: #047857 !important;
-        color: #FFFFFF !important;
-    }
+    .stApp { background-color: #F8FAFC !important; }
+    h2 { color: #0F172A !important; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 700 !important; }
+    .stMarkdown p, label, span, .stWidgetLabel p { color: #1E293B !important; font-weight: 600 !important; opacity: 1 !important; }
+    div[data-testid="stForm"] { background-color: #FFFFFF !important; border: 2px solid #E2E8F0 !important; border-radius: 12px !important; padding: 24px !important; }
+    .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input { color: #000000 !important; background-color: #FFFFFF !important; border: 2px solid #CBD5E1 !important; border-radius: 6px !important; }
+    input, textarea, select { color: #000000 !important; }
+    .stButton button { background-color: #0F172A !important; color: #FFFFFF !important; font-weight: 600 !important; border: 2px solid #0F172A !important; border-radius: 6px !important; padding: 10px 20px !important; }
+    .stButton button:hover { background-color: #1E293B !important; border-color: #1E293B !important; }
+    .stDownloadButton button { background-color: #059669 !important; color: #FFFFFF !important; font-weight: 600 !important; border: 2px solid #059669 !important; border-radius: 6px !important; }
+    .stDownloadButton button:hover { background-color: #047857 !important; border-color: #047857 !important; }
     </style>
 """, unsafe_allow_html=True)
 
 st.write("<h2>Compilador de Simulados Avançado</h2>", unsafe_allow_html=True)
-st.write("Suporte nativo a análise de bancas, dicas de memorização e resumos integrados.")
 
 with st.form(key="formulario_minimalista"):
-    tipo_selecionado = st.selectbox(
-        "Formato das questões:",
-        ["Certo / Errado", "Múltipla Escolha (A até E)"]
-    )
-    
-    nome_arquivo_input = st.text_input(
-        "Nome do arquivo PDF (Opcional):",
-        placeholder="Ex: Simulado_Excel_Cebraspe"
-    )
-    
-    json_input = st.text_area(
-        "Código estruturado (JSON):", 
-        height=300, 
-        placeholder="Cole a nova estrutura gerada pela inteligência artificial aqui..."
-    )
-    
+    tipo_selecionado = st.selectbox("Formato das questões:", ["Certo / Errado", "Múltipla Escolha (A até E)"])
+    nome_arquivo_input = st.text_input("Nome do arquivo PDF (Opcional):", placeholder="Ex: Simulado_Constitucional")
+    json_input = st.text_area("Código estruturado (JSON):", height=300, placeholder="Cole a estrutura JSON aqui...")
     botao_enviar = st.form_submit_button(label="Processar e Estruturar", use_container_width=True)
 
 if botao_enviar:
@@ -310,7 +249,7 @@ if botao_enviar:
                 nome_limpo = nome_arquivo_input.strip().replace(".pdf", "").replace(".PDF", "")
                 nome_final = f"{nome_limpo}.pdf"
             else:
-                nome_seguro = dados_validados.get('Materia', 'Simulado').replace(" ", "_")
+                nome_seguro = dados_validados.get('Materia', 'Simulado').replace(" ", "_").replace("/", "_")
                 nome_final = f"{nome_seguro}.pdf"
                 
             st.session_state['nome_arquivo_pdf'] = nome_final
@@ -322,7 +261,6 @@ if botao_enviar:
 if 'dados_pdf' in st.session_state:
     st.markdown("<br>", unsafe_allow_html=True)
     pdf_data = gerar_pdf_stream(st.session_state['dados_pdf'], st.session_state['tipo_pdf'])
-    
     st.download_button(
         label="📥 Baixar Caderno Formatado",
         data=pdf_data,
